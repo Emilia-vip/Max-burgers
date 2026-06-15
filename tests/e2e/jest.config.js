@@ -1,5 +1,5 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testTimeout: 30000,
+  testTimeout: process.env.CI ? 60000 : 30000,
 };

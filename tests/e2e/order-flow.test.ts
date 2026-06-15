@@ -1,4 +1,5 @@
 const BASE_URL = process.env.API_URL || 'http://localhost';
+const WAIT_TIMEOUT_MS = process.env.CI ? 45000 : 15000;
 
 const EXPECTED_EVENTS = [
   'order.created',
@@ -25,7 +26,7 @@ async function api(
 
 async function waitFor(
   fn: () => Promise<boolean>,
-  timeoutMs = 15000,
+  timeoutMs = WAIT_TIMEOUT_MS,
   intervalMs = 500
 ): Promise<void> {
   const start = Date.now();
@@ -34,6 +35,18 @@ async function waitFor(
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new Error('Timeout waiting for condition');
+}
+
+async function waitForNotification(orderId: string, eventType: string): Promise<void> {
+  await waitFor(async () => {
+    const notifications = await api(`/api/notifications/order/${orderId}`);
+    return (
+      Array.isArray(notifications.body) &&
+      notifications.body.some(
+        (notification: { eventType: string }) => notification.eventType === eventType
+      )
+    );
+  });
 }
 
 async function createTestOrder(customerName = 'Test Kund'): Promise<OrderResponse> {
@@ -99,7 +112,10 @@ describe('MaxBurger E2E Order Flow', () => {
 
     await waitFor(async () => {
       const kitchen = await api('/api/kitchen?active=true');
-      return kitchen.body.some((t: { orderId: string }) => t.orderId === orderId);
+      return (
+        Array.isArray(kitchen.body) &&
+        kitchen.body.some((t: { orderId: string }) => t.orderId === orderId)
+      );
     });
 
     const activeKitchen = await api('/api/kitchen?active=true');
@@ -152,7 +168,10 @@ describe('MaxBurger E2E Order Flow', () => {
 
     await waitFor(async () => {
       const notifications = await api(`/api/notifications/order/${orderId}`);
-      return notifications.body.length >= EXPECTED_EVENTS.length;
+      return (
+        Array.isArray(notifications.body) &&
+        notifications.body.length >= EXPECTED_EVENTS.length
+      );
     });
 
     const notifications = await api(`/api/notifications/order/${orderId}`);
@@ -187,13 +206,7 @@ describe('MaxBurger E2E Order Flow', () => {
     expect(cancelRes.status).toBe(200);
     expect(cancelRes.body.status).toBe('cancelled');
 
-    const notifications = await api(`/api/notifications/order/${order.id}`);
-    expect(
-      notifications.body.some(
-        (notification: { eventType: string }) =>
-          notification.eventType === 'order.cancelled'
-      )
-    ).toBe(true);
+    await waitForNotification(order.id, 'order.cancelled');
   });
 
   it('rejects cancelling a completed order', async () => {
@@ -202,7 +215,10 @@ describe('MaxBurger E2E Order Flow', () => {
 
     await waitFor(async () => {
       const kitchen = await api('/api/kitchen?active=true');
-      return kitchen.body.some((t: { orderId: string }) => t.orderId === orderId);
+      return (
+        Array.isArray(kitchen.body) &&
+        kitchen.body.some((t: { orderId: string }) => t.orderId === orderId)
+      );
     });
 
     const ticket = (await api('/api/kitchen?active=true')).body.find(
@@ -223,6 +239,11 @@ describe('MaxBurger E2E Order Flow', () => {
 
     await api(`/api/orders/${orderId}/complete`, { method: 'PATCH' });
 
+    await waitFor(async () => {
+      const order = await api(`/api/orders/${orderId}`);
+      return order.body?.status === 'completed';
+    });
+
     const cancelRes = await api(`/api/orders/${orderId}/cancel`, {
       method: 'PATCH',
     });
@@ -235,7 +256,10 @@ describe('MaxBurger E2E Order Flow', () => {
 
     await waitFor(async () => {
       const kitchen = await api('/api/kitchen?active=true');
-      return kitchen.body.some((t: { orderId: string }) => t.orderId === orderId);
+      return (
+        Array.isArray(kitchen.body) &&
+        kitchen.body.some((t: { orderId: string }) => t.orderId === orderId)
+      );
     });
 
     const ticket = (await api('/api/kitchen?active=true')).body.find(

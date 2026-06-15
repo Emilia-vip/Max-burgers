@@ -2,7 +2,7 @@
   "name": "maxburger-e2e",
   "version": "1.0.0",
   "scripts": {
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --forceExit"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
