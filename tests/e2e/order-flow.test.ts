@@ -67,6 +67,60 @@ async function createTestOrder(customerName = 'Test Kund'): Promise<OrderRespons
   return orderRes.body as OrderResponse;
 }
 
+async function getKitchenTicket(orderId: string) {
+  await waitFor(async () => {
+    const kitchen = await api('/api/kitchen?active=true');
+    return (
+      Array.isArray(kitchen.body) &&
+      kitchen.body.some((t: { orderId: string }) => t.orderId === orderId)
+    );
+  });
+
+  const ticket = (await api('/api/kitchen?active=true')).body.find(
+    (t: { orderId: string }) => t.orderId === orderId
+  );
+
+  if (!ticket) {
+    throw new Error(`Kitchen ticket not found for order ${orderId}`);
+  }
+
+  return ticket as { id: number; orderId: string; status: string };
+}
+
+async function completeOrderThroughKitchen(orderId: string): Promise<void> {
+  const ticket = await getKitchenTicket(orderId);
+
+  const preparingRes = await api(`/api/kitchen/${ticket.id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'preparing' }),
+  });
+  expect(preparingRes.status).toBe(200);
+
+  await waitFor(async () => {
+    const currentOrder = await api(`/api/orders/${orderId}`);
+    return currentOrder.body?.status === 'preparing';
+  });
+
+  const readyRes = await api(`/api/kitchen/${ticket.id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'ready' }),
+  });
+  expect(readyRes.status).toBe(200);
+
+  await waitFor(async () => {
+    const currentOrder = await api(`/api/orders/${orderId}`);
+    return currentOrder.body?.status === 'ready';
+  });
+
+  const completeRes = await api(`/api/orders/${orderId}/complete`, {
+    method: 'PATCH',
+  });
+  expect(completeRes.status).toBe(200);
+  expect(completeRes.body?.status).toBe('completed');
+}
+
 describe('MaxBurger E2E Order Flow', () => {
   beforeAll(async () => {
     await waitFor(async () => {
@@ -218,48 +272,9 @@ describe('MaxBurger E2E Order Flow', () => {
 
   it('rejects cancelling a completed order', async () => {
     const order = await createTestOrder('Completed Cancel Test');
-    const orderId = order.id;
+    await completeOrderThroughKitchen(order.id);
 
-    await waitFor(async () => {
-      const kitchen = await api('/api/kitchen?active=true');
-      return (
-        Array.isArray(kitchen.body) &&
-        kitchen.body.some((t: { orderId: string }) => t.orderId === orderId)
-      );
-    });
-
-    const ticket = (await api('/api/kitchen?active=true')).body.find(
-      (t: { orderId: string }) => t.orderId === orderId
-    );
-
-    await api(`/api/kitchen/${ticket.id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'preparing' }),
-    });
-
-    await api(`/api/kitchen/${ticket.id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'ready' }),
-    });
-
-    await waitFor(async () => {
-      const currentOrder = await api(`/api/orders/${orderId}`);
-      return currentOrder.body?.status === 'ready';
-    });
-
-    const completeRes = await api(`/api/orders/${orderId}/complete`, {
-      method: 'PATCH',
-    });
-    expect(completeRes.status).toBe(200);
-
-    await waitFor(async () => {
-      const currentOrder = await api(`/api/orders/${orderId}`);
-      return currentOrder.body?.status === 'completed';
-    });
-
-    const cancelRes = await api(`/api/orders/${orderId}/cancel`, {
+    const cancelRes = await api(`/api/orders/${order.id}/cancel`, {
       method: 'PATCH',
     });
     expect(cancelRes.status).toBe(409);
