@@ -1,0 +1,12 @@
+{
+  "name": "maxburger",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "docker compose up --build",
+    "stop": "docker compose down",
+    "dev": "npm run dev --prefix frontend",
+    "test:unit": "npm run build --prefix shared && npm test --prefix shared && npm test --prefix services/product-service && npm test --prefix services/order-service && npm test --prefix services/kitchen-service && npm test --prefix services/notification-service && npm test --prefix services/api-gateway",
+    "test:e2e": "npm test --prefix tests/e2e"
+  }
+}

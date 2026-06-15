@@ -1,0 +1,164 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: infra/nginx/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - maxburger-net
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: maxburger
+      POSTGRES_PASSWORD: maxburger
+      POSTGRES_DB: maxburger
+    volumes:
+      - ./infra/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maxburger -d maxburger"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - maxburger-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: maxburger
+      RABBITMQ_DEFAULT_PASS: maxburger
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+    networks:
+      - maxburger-net
+
+  product-service:
+    build:
+      context: .
+      dockerfile: services/product-service/Dockerfile
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgres://maxburger:maxburger@postgres:5432/maxburger
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - maxburger-net
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    restart: on-failure
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgres://maxburger:maxburger@postgres:5432/maxburger
+      RABBITMQ_URL: amqp://maxburger:maxburger@rabbitmq:5672
+      PRODUCT_SERVICE_URL: http://product-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - maxburger-net
+
+  kitchen-service:
+    build:
+      context: .
+      dockerfile: services/kitchen-service/Dockerfile
+    restart: on-failure
+    environment:
+      PORT: 3003
+      DATABASE_URL: postgres://maxburger:maxburger@postgres:5432/maxburger
+      RABBITMQ_URL: amqp://maxburger:maxburger@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - maxburger-net
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    restart: on-failure
+    environment:
+      PORT: 3004
+      DATABASE_URL: postgres://maxburger:maxburger@postgres:5432/maxburger
+      RABBITMQ_URL: amqp://maxburger:maxburger@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - maxburger-net
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    environment:
+      PORT: 3000
+      PRODUCT_SERVICE_URL: http://product-service:3001
+      ORDER_SERVICE_URL: http://order-service:3002
+      KITCHEN_SERVICE_URL: http://kitchen-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+    depends_on:
+      product-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      kitchen-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - maxburger-net
+
+volumes:
+  postgres-data:
+
+networks:
+  maxburger-net:
+    driver: bridge
