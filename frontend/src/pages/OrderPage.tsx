@@ -199,9 +199,7 @@ export function OrderPage() {
       </div>
 
       <div className="tracker-card">
-        <h2 style={{ fontSize: '1.5rem', color: 'var(--red)', marginBottom: '1rem' }}>
-          Notiser
-        </h2>
+        <h2 className="section-title">Notiser</h2>
         {notifications.length === 0 ? (
           <p style={{ color: 'var(--gray)' }}>Inga notiser ännu...</p>
         ) : (

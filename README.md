@@ -12,6 +12,8 @@ Systemet startar alla tjänster, kör databas-DDL och seed-data automatiskt.
 
 **Publik bas-URL:** `http://localhost` (port 80 via nginx)
 
+Interna tjänster (PostgreSQL, RabbitMQ, mikrotjänster) är endast tillgängliga på Docker-nätverket – all extern trafik går via nginx.
+
 Öppna i webbläsaren för att använda frontend-appen (meny, varukorg, orderstatus och kökspanel).
 
 ## Arkitektur

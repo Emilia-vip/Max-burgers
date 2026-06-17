@@ -10,5 +10,6 @@
     "skipLibCheck": true,
     "declaration": true
   },
-  "include": ["ts/**/*"]
+  "include": ["ts/**/*"],
+  "exclude": ["ts/**/*.test.ts"]
 }

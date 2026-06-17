@@ -154,6 +154,52 @@ describe('MaxBurger E2E Order Flow', () => {
     expect(product.body.name).toBe('Classic Burger');
   });
 
+  it('returns 404 for unknown product id', async () => {
+    const product = await api('/api/products/9999');
+    expect(product.status).toBe(404);
+  });
+
+  it('rejects order with missing customer name', async () => {
+    const res = await api('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName: '',
+        customerEmail: 'test@example.com',
+        items: [{ productId: 1, quantity: 1 }],
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects order with invalid email', async () => {
+    const res = await api('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName: 'Test',
+        customerEmail: 'not-an-email',
+        items: [{ productId: 1, quantity: 1 }],
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('lists all notifications after creating an order', async () => {
+    const order = await createTestOrder('Notifications List Test');
+
+    await waitForNotification(order.id, 'order.confirmed');
+
+    const allNotifications = await api('/api/notifications');
+    expect(allNotifications.status).toBe(200);
+    expect(Array.isArray(allNotifications.body)).toBe(true);
+    expect(
+      allNotifications.body.some(
+        (notification: { orderId: string }) => notification.orderId === order.id
+      )
+    ).toBe(true);
+  });
+
   it('lists orders after creating one', async () => {
     const order = await createTestOrder('List Test');
     const orders = await api('/api/orders');

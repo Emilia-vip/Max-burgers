@@ -70,7 +70,7 @@ export function KitchenPage() {
               <div className="kitchen-actions">
                 {ticket.status === 'queued' && (
                   <button
-                    className="btn-yellow"
+                    className="btn-accent"
                     onClick={() => handleStatus(ticket.id, 'preparing')}
                     disabled={actionId === ticket.id}
                   >

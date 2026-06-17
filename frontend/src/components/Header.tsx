@@ -16,7 +16,7 @@ export function Header() {
   return (
     <header className="header">
       <Link to="/" className="brand">
-        MAXBURGER
+        Max<span className="brand-accent">Burger</span>
       </Link>
       <nav className="nav">
         <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
