@@ -1,4 +1,4 @@
-import type { KitchenTicket, Menu, Notification, Order, Product } from '../types';
+import type { KitchenTicket, Notification, Order, Product } from '../types';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, options);
@@ -14,10 +14,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export function getProducts(): Promise<Product[]> {
   return request('/api/products');
-}
-
-export function getMenus(): Promise<Menu[]> {
-  return request('/api/menus');
 }
 
 export function createOrder(data: {

@@ -14,6 +14,11 @@ import { createTicket } from './db';
 let connection: RabbitConnection | null = null;
 let channel: Channel | null = null;
 
+function getChannel(): Channel {
+  if (!channel) throw new Error('RabbitMQ channel not initialized');
+  return channel;
+}
+
 export async function initEventBus(): Promise<void> {
   const url = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
   connection = await connectRabbitMQ(url);
@@ -35,21 +40,25 @@ export async function initEventBus(): Promise<void> {
   );
 }
 
-export function getChannel(): Channel {
-  if (!channel) throw new Error('RabbitMQ channel not initialized');
-  return channel;
-}
-
 export async function publishKitchenEvent(
   eventType: EventType.ORDER_PREPARING | EventType.ORDER_READY,
-  event: OrderEvent
+  ticket: {
+    orderId: string;
+    customerName: string;
+    customerEmail: string;
+  }
 ): Promise<void> {
-  const updated = createOrderEvent(eventType, {
-    ...event.payload,
-    status: eventType === EventType.ORDER_PREPARING ? 'preparing' : 'ready',
+  const status = eventType === EventType.ORDER_PREPARING ? 'preparing' : 'ready';
+  const event = createOrderEvent(eventType, {
+    orderId: ticket.orderId,
+    customerName: ticket.customerName,
+    customerEmail: ticket.customerEmail,
+    items: [],
+    total: 0,
+    status,
   });
-  await publishEvent(getChannel(), updated);
-  console.log(`Published ${eventType} for order ${event.payload.orderId}`);
+  await publishEvent(getChannel(), event);
+  console.log(`Published ${eventType} for order ${ticket.orderId}`);
 }
 
 export async function closeEventBus(): Promise<void> {

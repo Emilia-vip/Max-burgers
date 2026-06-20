@@ -124,13 +124,13 @@ async function completeOrderThroughKitchen(orderId: string): Promise<void> {
 describe('MaxBurger E2E Order Flow', () => {
   beforeAll(async () => {
     await waitFor(async () => {
-      const { status, body } = await api('/health');
+      const { status, body } = await api('/api/health');
       return status === 200 && body?.service === 'api-gateway';
     }, WAIT_TIMEOUT_MS, 1000);
   }, WAIT_TIMEOUT_MS);
 
   it('health check responds through nginx', async () => {
-    const { status, body } = await api('/health');
+    const { status, body } = await api('/api/health');
     expect(status).toBe(200);
     expect(body.service).toBe('api-gateway');
   });
@@ -217,18 +217,7 @@ describe('MaxBurger E2E Order Flow', () => {
     expect(order.status).toBe('confirmed');
     expect(Number(order.total)).toBe(159);
 
-    await waitFor(async () => {
-      const kitchen = await api('/api/kitchen?active=true');
-      return (
-        Array.isArray(kitchen.body) &&
-        kitchen.body.some((t: { orderId: string }) => t.orderId === orderId)
-      );
-    });
-
-    const activeKitchen = await api('/api/kitchen?active=true');
-    const ticket = activeKitchen.body.find(
-      (t: { orderId: string }) => t.orderId === orderId
-    );
+    const ticket = await getKitchenTicket(orderId);
     expect(ticket.status).toBe('queued');
 
     const allKitchen = await api('/api/kitchen');
@@ -241,37 +230,7 @@ describe('MaxBurger E2E Order Flow', () => {
     expect(ticketById.status).toBe(200);
     expect(ticketById.body.orderId).toBe(orderId);
 
-    const preparingRes = await api(`/api/kitchen/${ticket.id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'preparing' }),
-    });
-    expect(preparingRes.status).toBe(200);
-    expect(preparingRes.body.status).toBe('preparing');
-
-    await waitFor(async () => {
-      const currentOrder = await api(`/api/orders/${orderId}`);
-      return currentOrder.body.status === 'preparing';
-    });
-
-    const readyRes = await api(`/api/kitchen/${ticket.id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'ready' }),
-    });
-    expect(readyRes.status).toBe(200);
-    expect(readyRes.body.status).toBe('ready');
-
-    await waitFor(async () => {
-      const currentOrder = await api(`/api/orders/${orderId}`);
-      return currentOrder.body.status === 'ready';
-    });
-
-    const completeRes = await api(`/api/orders/${orderId}/complete`, {
-      method: 'PATCH',
-    });
-    expect(completeRes.status).toBe(200);
-    expect(completeRes.body.status).toBe('completed');
+    await completeOrderThroughKitchen(orderId);
 
     await waitFor(async () => {
       const notifications = await api(`/api/notifications/order/${orderId}`);

@@ -36,7 +36,7 @@ export async function initEventBus(): Promise<void> {
   await setupExchange(channel);
 }
 
-export function getChannel(): Channel {
+function getChannel(): Channel {
   if (!channel) throw new Error('RabbitMQ not initialized');
   return channel;
 }

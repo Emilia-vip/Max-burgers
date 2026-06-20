@@ -51,5 +51,3 @@ process.on('SIGTERM', async () => {
 });
 
 start();
-
-export default app;

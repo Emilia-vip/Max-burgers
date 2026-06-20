@@ -52,7 +52,7 @@ jobs:
       - name: Wait for system to be ready
         run: |
           for i in $(seq 1 90); do
-            if curl -sf http://localhost/health > /dev/null 2>&1 \
+            if curl -sf http://localhost/api/health > /dev/null 2>&1 \
               && curl -sf http://localhost/api/products > /dev/null 2>&1 \
               && curl -sf http://localhost/api/menus > /dev/null 2>&1; then
               echo "API is responding, warming up event pipeline..."

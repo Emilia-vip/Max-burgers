@@ -27,11 +27,5 @@ async function getAllProductsCached(): Promise<ProductInfo[]> {
 export async function fetchProducts(ids: number[]): Promise<ProductInfo[]> {
   const allProducts = await getAllProductsCached();
   const idSet = new Set(ids);
-  const matched = allProducts.filter((p) => idSet.has(p.id));
-
-  if (matched.length !== ids.length) {
-    return [];
-  }
-
-  return matched;
+  return allProducts.filter((p) => idSet.has(p.id));
 }

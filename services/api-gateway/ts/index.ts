@@ -9,11 +9,16 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'api-gateway' });
 });
 
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'api-gateway' });
+});
+
 app.get('/', (_req, res) => {
   res.json({
     name: 'MaxBurger API',
     version: '1.0.0',
     endpoints: {
+      health: 'GET /api/health',
       products: 'GET /api/products',
       menus: 'GET /api/menus',
       orders: 'POST /api/orders, GET /api/orders/:id',
@@ -40,5 +45,3 @@ for (const service of getServiceRoutes()) {
 app.listen(PORT, () => {
   console.log(`API Gateway running on port ${PORT}`);
 });
-
-export default app;

@@ -1,3 +1,5 @@
+import { EventType } from '@maxburger/shared';
+
 export type KitchenStatus = 'queued' | 'preparing' | 'ready';
 
 const VALID_TRANSITIONS: Record<KitchenStatus, KitchenStatus[]> = {
@@ -15,11 +17,14 @@ export function canTransitionKitchenStatus(
 
 export function kitchenStatusToEvent(
   status: KitchenStatus
-): 'order.preparing' | 'order.ready' | null {
-  const mapping: Record<KitchenStatus, 'order.preparing' | 'order.ready' | null> = {
+): EventType.ORDER_PREPARING | EventType.ORDER_READY | null {
+  const mapping: Record<
+    KitchenStatus,
+    EventType.ORDER_PREPARING | EventType.ORDER_READY | null
+  > = {
     queued: null,
-    preparing: 'order.preparing',
-    ready: 'order.ready',
+    preparing: EventType.ORDER_PREPARING,
+    ready: EventType.ORDER_READY,
   };
   return mapping[status];
 }

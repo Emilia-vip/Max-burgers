@@ -1,33 +1,30 @@
 export interface ServiceConfig {
-  name: string;
   url: string;
   pathPrefix: string;
 }
 
 export function getServiceRoutes(): ServiceConfig[] {
+  const productServiceUrl =
+    process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001';
+
   return [
     {
-      name: 'product-service',
-      url: process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001',
+      url: productServiceUrl,
       pathPrefix: '/api/products',
     },
     {
-      name: 'product-service-menus',
-      url: process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001',
+      url: productServiceUrl,
       pathPrefix: '/api/menus',
     },
     {
-      name: 'order-service',
       url: process.env.ORDER_SERVICE_URL || 'http://localhost:3002',
       pathPrefix: '/api/orders',
     },
     {
-      name: 'kitchen-service',
       url: process.env.KITCHEN_SERVICE_URL || 'http://localhost:3003',
       pathPrefix: '/api/kitchen',
     },
     {
-      name: 'notification-service',
       url: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3004',
       pathPrefix: '/api/notifications',
     },

@@ -1,5 +1,4 @@
 import express from 'express';
-import { EventType } from '@maxburger/shared';
 import {
   getActiveTickets,
   getAllTickets,
@@ -89,23 +88,7 @@ app.patch('/tickets/:id/status', async (req, res) => {
 
     const eventType = kitchenStatusToEvent(status);
     if (eventType) {
-      const rabbitEventType =
-        eventType === 'order.preparing'
-          ? EventType.ORDER_PREPARING
-          : EventType.ORDER_READY;
-
-      await publishKitchenEvent(rabbitEventType, {
-        type: rabbitEventType,
-        timestamp: new Date().toISOString(),
-        payload: {
-          orderId: updated.orderId,
-          customerName: updated.customerName,
-          customerEmail: updated.customerEmail,
-          items: [],
-          total: 0,
-          status,
-        },
-      });
+      await publishKitchenEvent(eventType, updated);
     }
 
     res.json(updated);
@@ -135,5 +118,3 @@ process.on('SIGTERM', async () => {
 });
 
 start();
-
-export default app;

@@ -114,12 +114,12 @@ app.post('/orders', async (req, res) => {
 
     const confirmed = await updateOrderStatus(order.id, 'confirmed');
 
-    if (confirmed) {
-      await publishOrderEvent(EventType.ORDER_CONFIRMED, confirmed);
-      return res.status(201).json(confirmed);
+    if (!confirmed) {
+      return handleError(res, null, 'Failed to confirm order');
     }
 
-    res.status(201).json(order);
+    await publishOrderEvent(EventType.ORDER_CONFIRMED, confirmed);
+    return res.status(201).json(confirmed);
   } catch (err) {
     handleError(res, err, 'Failed to create order');
   }
@@ -175,5 +175,3 @@ process.on('SIGTERM', async () => {
 });
 
 start();
-
-export default app;

@@ -7,13 +7,6 @@ export interface Product {
   available: boolean;
 }
 
-export interface Menu {
-  id: number;
-  name: string;
-  active: boolean;
-  products: Product[];
-}
-
 export interface OrderItem {
   id?: number;
   productId: number;

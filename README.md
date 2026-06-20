@@ -78,6 +78,7 @@ Maxburger/
 
 | Metod | Endpoint | Beskrivning |
 |-------|----------|-------------|
+| GET | `/api/health` | Health check (api-gateway) |
 | GET | `/api/products` | Lista produkter |
 | GET | `/api/menus` | Lista menyer med produkter |
 | POST | `/api/orders` | Skapa order |
